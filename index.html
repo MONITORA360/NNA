@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Indicadores de niñez y adolescencia Colombia 2025–2026</title>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#4F4F4E;background:#fff}
+.card{background:#fff;border:1px solid #eee;border-top:4px solid var(--c,#E5007E);border-radius:1.5rem;padding:1.1rem;box-shadow:0 14px 40px -22px rgba(0,0,0,.3);transition:transform .2s}
+button.card:hover{transform:translateY(-3px)}
+.ico{width:2.6rem;height:2.6rem;border-radius:.9rem;display:grid;place-items:center;flex:none}
+.lab{font-size:.78rem;font-weight:600;color:#6b6b6a;line-height:1.25}
+.num{font-size:1.9rem;font-weight:800;line-height:1.15;color:#222}
+.sub{font-size:.72rem;color:#999}
+.tab{padding:.6rem 1.1rem;border-radius:999px;font-weight:700;font-size:.85rem;border:1px solid #e5e5e5;background:#fff}
+.tab.on{background:#E5007E;color:#fff;border-color:#E5007E}
+.tg{padding:.5rem .9rem;border-radius:999px;font-size:.8rem;font-weight:700;border:1px solid #e5e5e5}
+.tg.on{background:#0075BE;color:#fff;border-color:#0075BE}
+.in{width:100%;border-radius:1rem;border:1px solid #e5e5e5;padding:.7rem 1rem;font-size:.85rem;font-weight:600;background:#fff}
+.in:focus-visible,.tab:focus-visible,.tg:focus-visible,button:focus-visible{outline:3px solid #0075BE;outline-offset:2px}
+#map{height:540px;border-radius:1.5rem;z-index:1}
+@media(max-width:640px){#map{height:420px}.num{font-size:1.6rem}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style></head>
+<body>
+<header class="max-w-7xl mx-auto px-5 py-4 flex items-center justify-between gap-4">
+ <img src="logom.png" alt="Logo" class="h-14 sm:h-20 w-auto" onerror="this.style.display='none'">
+ <nav class="hidden md:flex gap-2 text-sm font-bold">
+  <a class="tab" href="#indicadores">Indicadores</a><a class="tab" href="#mapa">Mapa de calor</a><a class="tab" href="#fichas">Fichas</a></nav>
+</header>
+
+<section class="relative overflow-hidden">
+ <div class="absolute -top-24 -right-20 w-80 h-80 rounded-full blur-3xl opacity-25" style="background:#E5007E"></div>
+ <div class="absolute top-32 -left-24 w-72 h-72 rounded-full blur-3xl opacity-20" style="background:#00AA95"></div>
+ <div class="absolute bottom-0 right-1/3 w-64 h-64 rounded-full blur-3xl opacity-20" style="background:#FFCB00"></div>
+ <div class="relative max-w-7xl mx-auto px-5 pt-8 pb-12">
+  <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] max-w-4xl" style="color:#A61680">INDICADORES DE NIÑEZ Y ADOLESCENCIA COLOMBIA 2025 – 2026</h1>
+  <p class="mt-5 text-sm sm:text-base font-semibold">Elaboración propia MONITORA</p>
+  <p class="text-sm">Fuente: DANE 2026 y Datos Abiertos ICBF</p>
+  <p id="upd" class="mt-3 inline-flex items-center gap-2 text-xs font-semibold rounded-full border border-neutral-200 bg-white/80 px-3 py-1"><i class="fa-solid fa-rotate" style="color:#008734"></i><span>Cargando datos…</span></p>
+  <p id="err" class="hidden mt-4 rounded-2xl p-4 text-sm font-semibold text-white" style="background:#E5007E">No se pudo leer el Excel. Revisa que esté en la misma carpeta que index.html y que la página se abra desde GitHub Pages o un servidor, no con doble clic.</p>
+  <div id="kpis" class="mt-9 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"></div>
+ </div>
+</section>
+
+<div class="sticky top-0 z-30 bg-white/90 backdrop-blur border-y border-neutral-100" style="padding-top:env(safe-area-inset-top,0px)">
+ <div class="max-w-7xl mx-auto px-5 py-3 grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto_auto] gap-2">
+  <select id="fd" class="in" aria-label="Departamento"></select>
+  <select id="fm" class="in" aria-label="Municipio"></select>
+  <button id="rs" class="tg" style="background:#4F4F4E;color:#fff"><i class="fa-solid fa-eraser"></i> Limpiar</button>
+  <button id="dl" class="tg"><i class="fa-solid fa-file-csv"></i> Descargar CSV</button>
+ </div>
+</div>
+
+<main class="max-w-7xl mx-auto px-5">
+ <section id="indicadores" class="pt-12">
+  <h2 class="text-2xl sm:text-3xl font-extrabold" style="color:#0075BE">Indicadores de <span id="sel">Colombia</span></h2>
+  <p class="text-sm mt-1 mb-5">Cada tarjeta muestra el total (o el promedio, si es un índice) y el ranking de los 10 territorios con mayor valor.</p>
+  <div id="tabs" class="flex gap-2 overflow-x-auto pb-2"></div>
+  <div id="grid" class="mt-4 grid sm:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+ </section>
+
+ <section id="mapa" class="pt-16">
+  <h2 class="text-2xl sm:text-3xl font-extrabold" style="color:#008734">Mapa de calor por municipio</h2>
+  <p class="text-sm mt-1 mb-4">Elige el indicador que define la intensidad. Toca un municipio para ver todos sus indicadores.</p>
+  <div class="flex flex-wrap gap-2 mb-3 items-center">
+   <select id="mv" class="in sm:max-w-md" aria-label="Indicador del mapa"></select>
+   <button id="bh" class="tg on"><i class="fa-solid fa-fire"></i> Calor</button>
+   <button id="bp" class="tg on"><i class="fa-solid fa-location-dot"></i> Municipios</button>
+  </div>
+  <div id="map"></div>
+  <div class="mt-3 flex items-center gap-3 text-xs font-semibold"><span>Menor</span><div class="h-3 flex-1 max-w-xs rounded-full" style="background:linear-gradient(90deg,#0075BE,#00AA95,#FFCB00,#F07701,#E5007E)"></div><span>Mayor</span></div>
+ </section>
+
+ <section id="fichas" class="pt-16 pb-16">
+  <h2 class="text-2xl sm:text-3xl font-extrabold" style="color:#A61680">Ficha de <span id="ft">Colombia</span></h2>
+  <p id="fl" class="text-sm mt-1 mb-5"></p>
+  <div class="grid lg:grid-cols-2 gap-4">
+   <div class="card" style="--c:#A61680"><table class="w-full text-sm"><thead><tr class="text-left text-xs text-neutral-400"><th class="pb-2">Indicador</th><th class="text-right">Valor</th><th class="text-right pl-2">Posición</th></tr></thead><tbody id="ftab"></tbody></table></div>
+   <div class="card" style="--c:#0075BE"><p class="lab mb-2">Índices frente al promedio nacional (escala 0 a 1)</p><div class="h-96"><canvas id="radar"></canvas></div></div>
+  </div>
+  <div class="mt-14 flex flex-wrap items-end justify-between gap-3">
+   <div><h3 class="text-xl sm:text-2xl font-extrabold" style="color:#F07701">Fichas de los 33 departamentos</h3><p class="text-sm">Toca una ficha para filtrar todo el tablero.</p></div>
+   <input id="q" class="in sm:max-w-xs" placeholder="Buscar departamento" aria-label="Buscar departamento">
+  </div>
+  <div id="dgrid" class="mt-4 grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+ </section>
+</main>
+
+<footer class="border-t border-neutral-100">
+ <div class="max-w-7xl mx-auto px-5 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
+  <img src="logom.png" alt="Logo" class="h-14 sm:h-20 w-auto" onerror="this.style.display='none'">
+  <p class="text-center sm:text-right font-semibold">Elaboración propia MONITORA<br><span class="font-normal">Fuente: DANE 2026 y Datos Abiertos ICBF</span></p>
+ </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
+<script>
+const FILES=['INDICADORES_DE_CONTEXTO_2025-2026.xlsx','indicadores_sociales.xlsx']; // nombres posibles del Excel en la misma carpeta (respeta mayúsculas)
+async function get(){for(const n of FILES){try{const r=await fetch(n+'?v='+Date.now(),{cache:'no-store'});if(r.ok)return r}catch(e){}}
+ throw new Error(location.protocol==='file:'?'la página se abrió con doble clic (file://); debe abrirse desde GitHub Pages o un servidor':'no se encontró en esta carpeta ninguno de estos archivos: '+FILES.join(' o '))}
+const P=['#E5007E','#008734','#A61680','#76B72A','#7F5CA2','#FFCB00','#0075BE','#F07701','#00AA95','#4F4F4E'];
+const TABS=['Población de 6 a 17 años','Enfoque diferencial','Contexto, riesgos y vulnerabilidades'];
+const ICO=[[/NIÑOS/,'child'],[/NIÑAS/,'child-dress'],[/NDIGENAS/,'feather-pointed'],[/NARP/,'people-group'],[/ROOM/,'people-roof'],[/RURAL/,'tractor'],[/VICTIMIZ/,'triangle-exclamation'],[/VICTIMA/,'heart-crack'],[/MIGRANT/,'person-walking-luggage'],[/DISCAP/,'wheelchair'],[/RECLUT/,'user-shield'],[/DESNUTR/,'bowl-food'],[/SEXUAL/,'shield-halved'],[/FÍSICA/,'hand-fist'],[/TRABAJO/,'hammer']];
+const ic=k=>(ICO.find(a=>a[0].test(k))||[0,'chart-simple'])[1];
+let D=[],V=[],I=new Set(),VI={},G={},sel={d:'',m:''},charts={},tab=0,sig=0,map,heat,pts,mv,hh=1,hp=1;
+const $=s=>document.querySelector(s),isI=k=>I.has(k);
+const f=(v,k)=>k&&isI(k)?(+v).toFixed(3):Math.round(v).toLocaleString('es-CO');
+const ag=(rs,k)=>{const s=rs.reduce((a,r)=>a+r[k],0);return isI(k)?s/(rs.length||1):s};
+const by=(rs,key)=>rs.reduce((o,r)=>((o[r[key]]??=[]).push(r),o),{});
+const rows=()=>D.filter(r=>(!sel.d||r.DEPARTAMENTO===sel.d)&&(!sel.m||r.MUNICIPIO===sel.m));
+const srt=(a,b)=>a.localeCompare(b,'es');
+const shortL=n=>n.length>16?n.slice(0,15)+'…':n;
+
+async function load(){
+ const r=await get();
+ const b=await r.arrayBuffer(),u=new Uint8Array(b);let h=b.byteLength;for(let i=0;i<u.length;i+=7)h=(h*31+u[i])|0;
+ if(h===sig)return;sig=h;
+ const wb=XLSX.read(u,{type:'array'});const sh=wb.Sheets[wb.SheetNames[0]];
+ D=XLSX.utils.sheet_to_json(sh,{defval:0}).map(o=>{const q={};for(const k in o)q[k.trim().replace(/\s+/g,' ')]=o[k];return q});
+ D.forEach(r=>{r.LATITUD=+r.LATITUD;r.LONGITUD=+r.LONGITUD});
+ V=Object.keys(D[0]).filter(k=>typeof D[0][k]==='number'&&!/^(COD|LATITUD|LONGITUD)/.test(k));
+ I=new Set(V.filter(k=>D.every(r=>r[k]>=0&&r[k]<=1)&&D.some(r=>r[k]%1)));
+ V.forEach((k,i)=>{VI[k]=i;G[k]=/NIÑ[OA]S/.test(k)?0:/NDIGENAS|NARP|ROOM/.test(k)?1:2});
+ if(!D.some(r=>r.DEPARTAMENTO===sel.d))sel={d:'',m:''};
+ if(!map)initMap();
+ $('#mv').innerHTML=V.map(k=>`<option>${k}</option>`).join('');
+ mv=V.find(k=>/VICTIMA/.test(k)&&!/IZ/.test(k))||V[0];$('#mv').value=mv;
+ $('#err').classList.add('hidden');
+ $('#upd span').textContent='Datos sincronizados con el Excel a las '+new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
+ fill();update(true);
+}
+function fill(){
+ const ds=[...new Set(D.map(r=>r.DEPARTAMENTO))].sort(srt);
+ $('#fd').innerHTML='<option value="">Todos los departamentos ('+ds.length+')</option>'+ds.map(d=>`<option>${d}</option>`).join('');fm();
+}
+function fm(){
+ const ms=D.filter(r=>r.DEPARTAMENTO===sel.d).map(r=>r.MUNICIPIO).sort(srt);
+ $('#fm').innerHTML='<option value="">'+(sel.d?'Todos los municipios ('+ms.length+')':'Elige primero un departamento')+'</option>'+ms.map(m=>`<option>${m}</option>`).join('');
+ $('#fm').disabled=!sel.d;$('#fd').value=sel.d;$('#fm').value=sel.m;
+}
+function update(fit){
+ $('#sel').textContent=sel.m?sel.m+', '+sel.d:sel.d||'Colombia';
+ kpis();tabs();cards();drawMap(fit!==false);ficha();dfich();
+}
+function kpis(){
+ const rs=rows(),p=V.filter(k=>G[k]===0&&!isI(k)),s=rs.reduce((a,r)=>a+p.reduce((b,k)=>b+r[k],0),0);
+ const vic=V.find(k=>/VICTIMA/.test(k)&&!/IZ/.test(k)),mig=V.find(k=>/MIGRANT/.test(k));
+ const it=[['Municipios en vista',rs.length,'location-dot'],['Niñas, niños y adolescentes de 6 a 17 años',s,'children'],[vic,vic&&ag(rs,vic),'heart-crack'],[mig,mig&&ag(rs,mig),'person-walking-luggage']].filter(x=>x[0]);
+ $('#kpis').innerHTML=it.map((x,i)=>`<div class="rounded-3xl p-4 sm:p-5 text-white" style="background:${['#0075BE','#E5007E','#7F5CA2','#008734'][i]}"><i class="fa-solid fa-${x[2]} text-xl opacity-80"></i><p class="kv text-2xl sm:text-4xl font-extrabold mt-2" data-v="${x[1]}">0</p><p class="text-xs sm:text-sm font-semibold opacity-90 leading-tight mt-1">${x[0]}</p></div>`).join('');
+}
+function tabs(){
+ $('#tabs').innerHTML=TABS.map((t,i)=>`<button class="tab ${i===tab?'on':''}" data-t="${i}">${t}</button>`).join('');
+}
+function top(k){
+ let it;
+ if(!sel.d)it=Object.entries(by(D,'DEPARTAMENTO')).map(([n,a])=>[n,ag(a,k)]);
+ else it=D.filter(r=>r.DEPARTAMENTO===sel.d).map(r=>[r.MUNICIPIO,r[k]]);
+ it.sort((a,b)=>b[1]-a[1]);const t=it.slice(0,10);
+ if(sel.m&&!t.some(x=>x[0]===sel.m))t[t.length-1]=it.find(x=>x[0]===sel.m);
+ return t;
+}
+function chart(k,c){
+ const t=top(k);charts[k]?.destroy();
+ charts[k]=new Chart($('#c'+VI[k]),{type:'bar',data:{labels:t.map(x=>x[0]),datasets:[{data:t.map(x=>x[1]),backgroundColor:t.map(x=>x[0]===sel.m?'#4F4F4E':c),borderRadius:6}]},
+ options:{indexAxis:'y',maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:o=>f(o.parsed.x,k)}}},
+ scales:{x:{grid:{display:false},ticks:{font:{size:10},callback:v=>isI(k)?v:v>=1e3?(v/1e3)+'k':v}},y:{grid:{display:false},ticks:{font:{size:10},callback:function(v){return shortL(this.getLabelForValue(v))}}}}}});
+}
+function cards(){
+ const rs=rows(),vs=V.filter(k=>G[k]===tab);
+ Object.keys(charts).forEach(k=>{if(k!=='r'){charts[k].destroy();delete charts[k]}});
+ $('#grid').innerHTML=vs.map(k=>{const c=P[VI[k]%10];
+  return `<article class="card" style="--c:${c}"><div class="flex items-start gap-3"><span class="ico" style="background:${c}22;color:${c}"><i class="fa-solid fa-${ic(k)}"></i></span><div class="min-w-0"><p class="lab">${k}</p><p class="num" data-v="${ag(rs,k)}" data-k="${k}">0</p><p class="sub">${isI(k)?'Promedio de los municipios (0 a 1)':'Total de '+rs.length.toLocaleString('es-CO')+' municipio'+(rs.length>1?'s':'')}</p></div></div><div class="h-44 mt-3"><canvas id="c${VI[k]}"></canvas></div></article>`}).join('');
+ vs.forEach(k=>chart(k,P[VI[k]%10]));
+ count();
+}
+function count(){
+ document.querySelectorAll('.num,.kv').forEach(e=>{const v=+e.dataset.v,k=e.dataset.k,t0=performance.now();
+  (function s(t){const p=Math.min(1,(t-t0)/700),x=v*(1-Math.pow(1-p,3));e.textContent=f(x,k);p<1&&requestAnimationFrame(s)})(t0)});
+}
+function initMap(){
+ map=L.map('map',{preferCanvas:true,scrollWheelZoom:false,dragging:!L.Browser.mobile}).setView([4.6,-74.1],5);
+ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CARTO',maxZoom:13}).addTo(map);
+ pts=L.layerGroup();
+ map.on('click',()=>map.scrollWheelZoom.enable());
+}
+const pop=r=>`<div style="font:12px 'Plus Jakarta Sans',sans-serif;min-width:230px"><b style="font-size:15px;color:#E5007E">${r.MUNICIPIO}</b><br>${r.DEPARTAMENTO}<div style="max-height:230px;overflow:auto;margin-top:6px">${V.map(k=>`<div style="display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #eee;padding:3px 0"><span style="font-size:10px">${k}</span><b style="color:${P[VI[k]%10]}">${f(r[k],k)}</b></div>`).join('')}</div></div>`;
+function drawMap(fit){
+ const rs=rows().filter(r=>r.LATITUD&&r.LONGITUD),mx=Math.max(...rs.map(r=>r[mv]))||1;
+ heat&&map.removeLayer(heat);pts.clearLayers();map.removeLayer(pts);
+ heat=L.heatLayer(rs.map(r=>[r.LATITUD,r.LONGITUD,isI(mv)?r[mv]/mx:Math.sqrt(r[mv]/mx)]),{radius:sel.d?30:18,blur:22,maxZoom:9,gradient:{.2:'#0075BE',.4:'#00AA95',.6:'#FFCB00',.8:'#F07701',1:'#E5007E'}});
+ rs.forEach(r=>L.circleMarker([r.LATITUD,r.LONGITUD],{radius:4.5,color:'#fff',weight:1,fillColor:'#7F5CA2',fillOpacity:.8}).bindPopup(()=>pop(r),{maxWidth:320}).addTo(pts));
+ hh&&heat.addTo(map);hp&&pts.addTo(map);
+ if(fit&&rs.length)map.fitBounds(rs.map(r=>[r.LATITUD,r.LONGITUD]),{padding:[30,30],maxZoom:sel.m?10:undefined});
+}
+function ficha(){
+ const rs=rows(),name=sel.m||sel.d||'Colombia',dg=by(D,'DEPARTAMENTO');
+ $('#ft').textContent=name;
+ $('#fl').textContent=(sel.m?'Ficha municipal de '+sel.d:sel.d?'Ficha departamental':'Ficha nacional')+', con '+rs.length.toLocaleString('es-CO')+' municipio'+(rs.length>1?'s':'');
+ $('#ftab').innerHTML=V.map(k=>{const v=ag(rs,k);let rk='';
+  if(sel.m)rk='#'+(1+D.filter(r=>r[k]>v).length)+' de '+D.length;
+  else if(sel.d){const a=Object.values(dg).map(x=>ag(x,k));rk='#'+(1+a.filter(x=>x>v).length)+' de '+a.length}
+  return `<tr class="border-b border-neutral-100"><td class="py-2 pr-2 text-xs font-semibold"><i class="fa-solid fa-${ic(k)} mr-2" style="color:${P[VI[k]%10]}"></i>${k}</td><td class="text-right font-bold" style="color:${P[VI[k]%10]}">${f(v,k)}</td><td class="text-right text-xs text-neutral-400 pl-2 whitespace-nowrap">${rk}</td></tr>`}).join('');
+ const ix=V.filter(isI);charts.r?.destroy();
+ charts.r=new Chart($('#radar'),{type:'radar',data:{labels:ix.map(k=>k.replace(/^[ÍI]NDICE( DE)? /,'').replace(/\(.*\)/,'').trim()),datasets:[{label:name,data:ix.map(k=>ag(rs,k)),backgroundColor:'#E5007E33',borderColor:'#E5007E',pointBackgroundColor:'#E5007E'},{label:'Promedio nacional',data:ix.map(k=>ag(D,k)),backgroundColor:'#0075BE22',borderColor:'#0075BE',borderDash:[4,4]}]},options:{maintainAspectRatio:false,scales:{r:{min:0,max:1,ticks:{display:false},pointLabels:{font:{size:10}}}},plugins:{legend:{position:'bottom'}}}});
+}
+function dfich(){
+ const q=($('#q').value||'').toUpperCase(),g=by(D,'DEPARTAMENTO'),p=V.filter(k=>G[k]===0&&!isI(k)),ix=V.filter(isI).slice(0,3);
+ $('#dgrid').innerHTML=Object.keys(g).sort(srt).filter(n=>n.includes(q)).map((n,j)=>{const a=g[n],t=a.reduce((s,r)=>s+p.reduce((b,k)=>b+r[k],0),0),c=P[j%10];
+  return `<button class="card text-left" data-d="${n}" style="--c:${c}"><p class="font-extrabold leading-tight" style="color:${c}">${n}</p><p class="text-xs mt-1">${a.length} municipios</p><p class="text-2xl font-extrabold text-neutral-800 mt-2">${Math.round(t).toLocaleString('es-CO')}</p><p class="sub mb-2">niñas, niños y adolescentes de 6 a 17 años</p>${ix.map(k=>{const v=ag(a,k);return `<div class="text-[11px] flex justify-between"><span>${shortL(k.replace(/^[ÍI]NDICE( DE)? /,''))}</span><b>${v.toFixed(2)}</b></div><div class="h-1.5 rounded-full bg-neutral-100 mb-1"><div class="h-full rounded-full" style="width:${Math.min(100,v*100)}%;background:${c}"></div></div>`}).join('')}</button>`}).join('');
+}
+function pick(d,m){sel.d=d;sel.m=m;fm();update();$('#fichas').scrollIntoView({behavior:'smooth'})}
+
+$('#fd').onchange=e=>{sel.d=e.target.value;sel.m='';fm();update()};
+$('#fm').onchange=e=>{sel.m=e.target.value;update()};
+$('#rs').onclick=()=>{sel={d:'',m:''};fm();update()};
+$('#mv').onchange=e=>{mv=e.target.value;drawMap(false)};
+$('#bh').onclick=e=>{hh=!hh;e.currentTarget.classList.toggle('on');drawMap(false)};
+$('#bp').onclick=e=>{hp=!hp;e.currentTarget.classList.toggle('on');drawMap(false)};
+$('#q').oninput=dfich;
+$('#tabs').onclick=e=>{const b=e.target.closest('[data-t]');if(b){tab=+b.dataset.t;tabs();cards()}};
+$('#dgrid').onclick=e=>{const b=e.target.closest('[data-d]');if(b)pick(b.dataset.d,'')};
+$('#dl').onclick=()=>{const rs=rows(),h=Object.keys(D[0]),c=[h.join(';'),...rs.map(r=>h.map(k=>`"${r[k]}"`).join(';'))].join('\n'),a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+c],{type:'text/csv'}));a.download='indicadores_'+(sel.m||sel.d||'colombia')+'.csv';a.click()};
+
+const go=()=>load().catch(e=>{console.error(e);if(!D.length){$('#err').textContent='No se pudo cargar el Excel: '+(e.message||e)+'.';$('#err').classList.remove('hidden');$('#upd span').textContent='Sin conexión con el Excel'}});
+go();setInterval(go,60000);document.addEventListener('visibilitychange',()=>!document.hidden&&go());
+</script>
+</body></html>
