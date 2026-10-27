@@ -101,7 +101,7 @@ button.card:hover{transform:translateY(-3px)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
 <script>
-const FILES=['INDICADORES_DE_CONTEXTO_2025-2026.xlsx','indicadores_sociales.xlsx']; // nombres posibles del Excel en la misma carpeta (respeta mayúsculas)
+const FILES=['indicadores_2025-2026.xlsx','INDICADORES_DE_CONTEXTO_2025-2026.xlsx','indicadores_sociales.xlsx']; // nombres posibles del Excel en la misma carpeta (respeta mayúsculas)
 async function get(){
  const tryN=async n=>{try{const r=await fetch(n+'?v='+Date.now(),{cache:'no-store'});return r.ok?r:null}catch(e){return null}};
  for(const n of FILES){const r=await tryN(n);if(r)return r}
@@ -162,7 +162,7 @@ function kpis(){
 function tabs(){
  $('#tabs').innerHTML=TABS.map((t,i)=>`<button class="tab ${i===tab?'on':''}" data-t="${i}">${t}</button>`).join('');
 }
-function top(k){
+function topN(k){
  let it;
  if(!sel.d)it=Object.entries(by(D,'DEPARTAMENTO')).map(([n,a])=>[n,ag(a,k)]);
  else it=D.filter(r=>r.DEPARTAMENTO===sel.d).map(r=>[r.MUNICIPIO,r[k]]);
@@ -171,7 +171,7 @@ function top(k){
  return t;
 }
 function chart(k,c){
- const t=top(k);charts[k]?.destroy();
+ const t=topN(k);charts[k]?.destroy();
  charts[k]=new Chart($('#c'+VI[k]),{type:'bar',data:{labels:t.map(x=>x[0]),datasets:[{data:t.map(x=>x[1]),backgroundColor:t.map(x=>x[0]===sel.m?'#4F4F4E':c),borderRadius:6}]},
  options:{indexAxis:'y',maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:o=>f(o.parsed.x,k)}}},
  scales:{x:{grid:{display:false},ticks:{font:{size:10},callback:v=>isI(k)?v:v>=1e3?(v/1e3)+'k':v}},y:{grid:{display:false},ticks:{font:{size:10},callback:function(v){return shortL(this.getLabelForValue(v))}}}}}});
