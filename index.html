@@ -102,7 +102,12 @@ button.card:hover{transform:translateY(-3px)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
 <script>
 const FILES=['INDICADORES_DE_CONTEXTO_2025-2026.xlsx','indicadores_sociales.xlsx']; // nombres posibles del Excel en la misma carpeta (respeta mayúsculas)
-async function get(){for(const n of FILES){try{const r=await fetch(n+'?v='+Date.now(),{cache:'no-store'});if(r.ok)return r}catch(e){}}
+async function get(){
+ const tryN=async n=>{try{const r=await fetch(n+'?v='+Date.now(),{cache:'no-store'});return r.ok?r:null}catch(e){return null}};
+ for(const n of FILES){const r=await tryN(n);if(r)return r}
+ if(/github\.io$/.test(location.hostname)){try{ // plan B: busca cualquier .xlsx en la carpeta raíz del repositorio
+  const o=location.hostname.split('.')[0],p=location.pathname.split('/').filter(Boolean)[0],l=await(await fetch(`https://api.github.com/repos/${o}/${p}/contents/`)).json(),x=l.find(i=>/\.xlsx$/i.test(i.name));
+  if(x){const r=await tryN(encodeURIComponent(x.name));if(r)return r}}catch(e){}}
  throw new Error(location.protocol==='file:'?'la página se abrió con doble clic (file://); debe abrirse desde GitHub Pages o un servidor':'no se encontró en esta carpeta ninguno de estos archivos: '+FILES.join(' o '))}
 const P=['#E5007E','#008734','#A61680','#76B72A','#7F5CA2','#FFCB00','#0075BE','#F07701','#00AA95','#4F4F4E'];
 const TABS=['Población de 6 a 17 años','Enfoque diferencial','Contexto, riesgos y vulnerabilidades'];
